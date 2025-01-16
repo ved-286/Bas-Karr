@@ -11,38 +11,53 @@ function Hero() {
   const [aiDescription, setAiDescription] = useState('');
 
 
-  const genAI = new GoogleGenerativeAI('AIzaSyCixrB25cCmk-sjZhRAAPCN5YkijUq3sJ4');
+  const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 
   const fetchGitHubData = async ()=>{
     try {
         const response1 = await axios.get(`https://api.github.com/users/${username1}`)
-        setProfile1(response1.data)
+       
 
         const response2 = await axios.get(`https://api.github.com/users/${username2}`)
+        setProfile1(response1.data)
         setProfile2(response2.data)
-       generateAIDescription(response1.data)
-       generateAIDescription(response2.data)
+      await generateAIDescription(response1.data,response2.data)
+     
         
     } catch (error) {
         console.error('Error fetching GitHub profile', error);
     }
 }
-const generateAIDescription = async (profileData) => {
+const generateAIDescription = async (prof1, prof2) => {
+  // Use passed profiles instead of relying on state
+  if (!prof1 || !prof2) {
+    console.error('Profiles are undefined');
+    return;
+  }
+
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-    const prompt = `Generate a trolling description for the following profile compare 1st profile to seconed profile: 
-      Name1: ${profileData.name || username1}
-      Name2: ${profileData.name || username2}
-      Followers: ${profileData.followers}
-      Public Repos: ${profileData.public_repos}
-      Bio: ${profileData.bio || 'No bio available'}
-      Company: ${profileData.company || 'Not specified'}`;
+    const prompt = `Compare GitHub profiles:
+    Profile 1:
+    - Name: ${prof1.name || 'N/A'}
+    - Username: ${prof1.login}
+    - Followers: ${prof1.followers}
+    - Repositories: ${prof1.public_repos}
+
+    Profile 2:
+    - Name: ${prof2.name || 'N/A'}
+    - Username: ${prof2.login}
+    - Followers: ${prof2.followers}
+    - Repositories: ${prof2.public_repos}
+
+    Provide a detailed comparative analysis`;
 
     const result = await model.generateContent(prompt);
     const description = await result.response.text();
+    
     setAiDescription(description);
   } catch (error) {
-    console.error('Error generating AI description', error);
+    console.error('AI Description Generation Error:', error);
   }
 };
 
@@ -55,9 +70,9 @@ const handleSubmit =()=>{
 
   return (
     <>
-      <div className="flex justify-center  bg-gradient-to-r from-gray-900 to-gray-600 h-[92vh] ">
-        <div className="bg-black w-[70vw]">
-          <div className="bg-red-600 ">
+      <div className="flex justify-center  bg-gradient-to-r from-gray-900 to-gray-600 min-h-screen">
+        <div className="w-[70vw]">
+          <div className="">
             <h1 className="text-4xl text-center font-bold text-white">compare your github</h1>
           </div>
           <div className="flex mt-6 ml-10 translate-x-20 p-5 gap-10">
@@ -66,13 +81,13 @@ const handleSubmit =()=>{
              placeholder="Enter GitHub Username 1" 
              onChange={(e) => setUsername1(e.target.value)} 
              value={username1 || ""}
-             className=" ml-4 p-2 border border-gray-300 rounded-lg" />
+             className=" ml-4 p-2 border border-gray-300 rounded-lg outline-none border-purple-400 border-9" />
           </div>
           <div>
             <input type="text" placeholder="Enter GitHub Username 2" 
             onChange={(e) => setUsername2(e.target.value)} 
             value={username2 || ""} 
-            className=" ml-4 p-2 border border-gray-300 rounded-lg" />
+            className=" ml-4 p-2 border border-gray-300 rounded-lg border-purple-400 border-9" />
           </div>
           </div>
           <div className="flex justify-center">
@@ -83,7 +98,7 @@ const handleSubmit =()=>{
           </div>
           {
           profile1 && (
-           <div className="mt-9 space-y-4 flex flex-col border border-gray-300 rounded-lg p-4 ml-8 translate-x-20 w-[20vw]">
+           <div className="mt-9 space-y-4 flex flex-col border border-purple-400 rounded-lg p-4 ml-8 translate-x-20 w-[20vw]">
             <div className="flex items-center space-x-4">
               <img 
               className="w-20 h-20 rounded-full"
@@ -117,7 +132,7 @@ const handleSubmit =()=>{
         }
         {
           profile2 &&(
-            <div className="mt-9 space-y-4 flex flex-col border border-gray-300 rounded-lg p-4 ml-8 translate-x-20 w-[20vw] relative top-[-34vh] left-[55vh]">
+            <div className="mt-9 space-y-4 flex flex-col border border-purple-400 rounded-lg p-4 ml-8 translate-x-20 w-[20vw] relative top-[-34vh] left-[55vh]">
             <div className="flex items-center space-x-4">
               <img 
               className="w-20 h-20 rounded-full"
@@ -149,7 +164,12 @@ const handleSubmit =()=>{
         }
 
         {
-
+          aiDescription &&(
+            <div className="bg-gray-700/50 rounded-lg p-4 border-l-4 relative top-[-30vh] border-purple-500">
+              <h3 className="text-lg font-bold text-white" > AI recomendation</h3>
+              <p className="text-white italic">{aiDescription}</p>
+            </div>
+          )
         }
         </div>
        
